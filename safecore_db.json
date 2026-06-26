@@ -1,0 +1,13 @@
+{
+    "empresa_actual": "aconcagua",
+    "rubro_actual": "Construcción",
+    "personal": [
+        {
+            "nombre": "Carlos mendoza",
+            "puesto": "supervisor soldadura",
+            "meses_epp": 1,
+            "estado_capacitacion": "Al día",
+            "fecha_capacitacion": "no aplica"
+        }
+    ]
+}
