@@ -1,7 +1,8 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from src.infrastructure.repositories import JSONTrabajadorRepository
-from src.domain.entities import Trabajador
+from src.domain.entities import Trabajador, Nombre, MesesUsoEPP
+from src.application.use_cases import RegistrarTrabajador
 
 app = FastAPI(
     title="SafeCore API",
@@ -9,8 +10,9 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Inicializamos el repositorio apuntando a la base de datos en la raíz
-repo = JSONTrabajadorRepository("safecore_db.json")
+# Función de inyección de dependencias para el repositorio
+def obtener_repositorio():
+    return JSONTrabajadorRepository("safecore_db.json")
 
 class TrabajadorDTO(BaseModel):
     id_trabajador: str
@@ -20,24 +22,29 @@ class TrabajadorDTO(BaseModel):
 
 @app.get("/")
 def leer_raiz():
-    return {"mensaje": "¡SafeCore API operando con persistencia real!"}
+    return {"mensaje": "SafeCore API operando con persistencia real!"}
 
 @app.post("/trabajadores/")
-def registrar_trabajador(trabajador_dto: TrabajadorDTO):
+def registrar_trabajador(
+    trabajador_dto: TrabajadorDTO,
+    repo: JSONTrabajadorRepository = Depends(obtener_repositorio)
+):
     try:
-        # Creamos la entidad utilizando los datos del DTO
+        # Creamos la entidad del dominio utilizando los Value Objects requeridos
         trabajador = Trabajador(
             id_trabajador=trabajador_dto.id_trabajador,
-            nombre=trabajador_dto.nombre,
-            meses_uso_epp=trabajador_dto.meses_uso_epp,
+            nombre=Nombre(trabajador_dto.nombre),
+            meses_uso_epp=MesesUsoEPP(trabajador_dto.meses_uso_epp),
             induccion_aprobada=trabajador_dto.induccion_aprobada
         )
         
-        repo.guardar(trabajador)
+        # Instanciamos el Caso de Uso inyectando el repositorio
+        caso_uso = RegistrarTrabajador(repo)
+        caso_uso.ejecutar(trabajador)
         
         return {
-            "estado": "Registrado con éxito en el archivo JSON",
-            "datos": trabajador_dto
+            "status": "success",
+            "message": f"Trabajador {trabajador.id_trabajador} registrado correctamente."
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
