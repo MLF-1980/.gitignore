@@ -1,27 +1,24 @@
-from src.domain.entities import Trabajador, Nombre, MesesUsoEPP
-from src.infrastructure.repositories import JSONTrabajadorRepository
-from src.application.use_cases import RegistrarTrabajador
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from src.domain.exceptions import DomainError, UserNotFoundError
+from src.infrastructure.repositories import JsonUserRepository
 
-def ejecutar_prueba():
-    print("=== EJECUTANDO CASO DE USO: REGISTRAR TRABAJADOR ===")
-    
-    # 1. Configuramos la infraestructura (el bibliotecario)
-    repo = JSONTrabajadorRepository("safecore_db.json")
-    
-    # 2. Inyectamos la infraestructura en el Caso de Uso
-    # (El caso de uso es el nuevo "Director de Orquesta")
-    registro = RegistrarTrabajador(repo)
+app = FastAPI(title="SafeCore API", version="1.0.0")
 
-    # 3. Creamos el trabajador (nuestra Entidad de Dominio)
-    nuevo_trabajador = Trabajador(
-        id_trabajador="102",
-        nombre=Nombre("Ana García"),
-        meses_uso_epp=MesesUsoEPP(2),
-        induccion_aprobada=True
+@app.exception_handler(UserNotFoundError)
+async def user_not_found_handler(request: Request, exc: UserNotFoundError):
+    return JSONResponse(
+        status_code=404,
+        content={"error": "Not Found", "message": str(exc)},
     )
 
-    # 4. El "main" ahora solo delega la acción al Caso de Uso
-    registro.ejecutar(nuevo_trabajador)
+@app.exception_handler(DomainError)
+async def domain_error_handler(request: Request, exc: DomainError):
+    return JSONResponse(
+        status_code=400,
+        content={"error": "Business Rule Violation", "message": str(exc)},
+    )
 
-if __name__ == "__main__":
-    ejecutar_prueba()
+@app.get("/")
+def health_check():
+    return {"status": "SafeCore running successfully"}
