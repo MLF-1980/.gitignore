@@ -1,3 +1,4 @@
+from api.router import router as personal_router
 from domain.exceptions import DomainError, UserNotFoundError
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -11,6 +12,7 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="SafeCore API", version="1.0.0")
 
+app.include_router(personal_router)
 
 @app.exception_handler(UserNotFoundError)
 async def user_not_found_handler(request: Request, exc: UserNotFoundError):
@@ -31,35 +33,3 @@ async def domain_error_handler(request: Request, exc: DomainError):
 @app.get("/")
 def health_check():
   return {"status": "SafeCore running successfully"}
-
-
-@app.post("/personal/")
-def crear_personal(
-    nombre: str,
-    apellido: str,
-    dni: str,
-    cargo: str,
-    db: Session = Depends(get_db),
-):
-  repo = SQLAlchemyPersonalRepository(db)
-
-  class PersonalDTO:
-
-    def __init__(self, nombre, apellido, dni, cargo):
-      self.nombre = nombre
-      self.apellido = apellido
-      self.dni = dni
-      self.cargo = cargo
-
-  nuevo = PersonalDTO(nombre, apellido, dni, cargo)
-  resultado = repo.guardar(nuevo)
-  return {
-      "mensaje": "Personal registrado con éxito en la base de datos",
-      "id": resultado.id,
-  }
-
-
-@app.get("/personal/")
-def listar_personal(db: Session = Depends(get_db)):
-  repo = SQLAlchemyPersonalRepository(db)
-  return repo.obtener_todos()
