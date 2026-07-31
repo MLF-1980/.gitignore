@@ -2,7 +2,8 @@ import json
 import os
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from domain.exceptions import UserNotFoundError
+from src.domain.exceptions import UserNotFoundError
+from src.domain.repositories import TrabajadorRepository
 from .models import PersonalModel
 
 
@@ -38,24 +39,17 @@ class JsonUserRepository:
         return user
     return None
 
+class SQLAlchemyPersonalRepository(TrabajadorRepository):
+    def __init__(self, db: Session):
+        self.db = db
 
-class SQLAlchemyPersonalRepository:
+    def guardar(self, trabajador):
+        # ... tu código existente ...
+        pass
 
-  def __init__(self, db: Session):
-    self.db = db
+    def obtener_todos(self):
+        # ... tu código existente ...
+        pass
 
-  def guardar(self, personal_data):
-    db_item = PersonalModel(
-        nombre=personal_data.nombre,
-        apellido=personal_data.apellido,
-        dni=personal_data.dni,
-        cargo=personal_data.cargo,
-        estado=getattr(personal_data, "estado", "Activo"),
-    )
-    self.db.add(db_item)
-    self.db.commit()
-    self.db.refresh(db_item)
-    return db_item
-
-  def obtener_todos(self):
-    return self.db.query(PersonalModel).all()
+    def obtener_por_id(self, personal_id: int):
+        return self.db.query(PersonalModel).filter(PersonalModel.id == personal_id).first()

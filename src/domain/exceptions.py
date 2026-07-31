@@ -4,8 +4,7 @@ class DomainError(Exception):
 
 class UserNotFoundError(DomainError):
     def __init__(self, user_id: str):
-        super().__init__(f"El usuario con ID '{user_id}' no fue encontrado.")
-        self.user_id = user_id
+        super().__init__(user_id)
 
 class DuplicateUserError(DomainError):
     def __init__(self, email: str):

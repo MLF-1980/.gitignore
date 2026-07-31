@@ -1,9 +1,9 @@
-from api.router import router as personal_router
-from domain.exceptions import DomainError, UserNotFoundError
+from src.api.router import router as personal_router
+from src.domain.exceptions import DomainError, UserNotFoundError
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
-from infrastructure.database import Base, engine, get_db
-from infrastructure.repositories import SQLAlchemyPersonalRepository
+from src.infrastructure.database import Base, engine, get_db
+from src.infrastructure.repositories import SQLAlchemyPersonalRepository
 
 from sqlalchemy.orm import Session
 
@@ -18,7 +18,7 @@ app.include_router(personal_router)
 async def user_not_found_handler(request: Request, exc: UserNotFoundError):
   return JSONResponse(
       status_code=404,
-      content={"error": "Not Found", "message": str(exc)},
+     content={"codigo": "SAFECORE_NOT_FOUND", "sistema": "SafeCore Subcontratistas", "detalle": str(exc)},
   )
 
 
@@ -26,7 +26,7 @@ async def user_not_found_handler(request: Request, exc: UserNotFoundError):
 async def domain_error_handler(request: Request, exc: DomainError):
   return JSONResponse(
       status_code=400,
-      content={"error": "Business Rule Violation", "message": str(exc)},
+     content={"codigo": "SAFECORE_REGULATORY_VIOLATION", "sistema": "SafeCore Subcontratistas", "detalle": str(exc)},
   )
 
 
