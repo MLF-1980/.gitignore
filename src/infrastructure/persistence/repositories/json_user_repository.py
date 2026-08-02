@@ -4,7 +4,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from src.domain.exceptions import UserNotFoundError
 from src.domain.repositories import TrabajadorRepository
-from .models import PersonalModel
+from ..models.user_model import PersonalModel
 
 
 class JsonUserRepository:

@@ -1,9 +1,9 @@
 from sqlalchemy import Column, Integer, String
-from .database import Base  # <-- Usar importación relativa con punto (.)
+from src.infrastructure.persistence.database import Base
 
 
 class PersonalModel(Base):
-  __tablename__ = "personal"
+  __tablename__ = "users"
 
   id = Column(Integer, primary_key=True, index=True, autoincrement=True)
   nombre = Column(String, index=True)
@@ -11,3 +11,4 @@ class PersonalModel(Base):
   dni = Column(String, unique=True, index=True)
   cargo = Column(String)
   estado = Column(String, default="Activo")
+  

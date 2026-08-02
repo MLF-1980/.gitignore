@@ -5,6 +5,11 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 from alembic import context
 from alembic.config import Config
+# Importa tu Base y modelos para que Alembic los reconozca
+from src.infrastructure.persistence.database import Base
+from src.infrastructure.persistence.models.user_model import PersonalModel
+
+target_metadata = Base.metadata
 
 # 1. Configuración del path absoluto para encontrar 'src'
 current_dir = Path(__file__).resolve().parent  # Directorio 'alembic'
@@ -13,7 +18,7 @@ sys.path.append(str(src_dir))
 
 # 2. Importación directa de modelos y base de datos de infraestructura
 from infrastructure.persistence.database import Base
-from infrastructure.persistence.models import *  # noqa
+from src.infrastructure.persistence.models.user_model import *  # noqa
 
 # 3. Carga directa y segura de la configuración desde 'alembic.ini' en la raíz (hsa)
 root_dir = current_dir.parents[3]  # Carpeta raíz del proyecto 'hsa'
