@@ -1,31 +1,28 @@
-from typing import List
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-
-from src.application.schemas import PersonalCreate, PersonalResponse
-from src.application.use_cases import RegistrarTrabajador, ListarTrabajadores, ObtenerTrabajadorPorId
-from src.infrastructure.database import get_db
-from src.infrastructure.repositories import SQLAlchemyPersonalRepository
+from src.infrastructure.persistence.database import get_db
+from src.infrastructure.persistence.repositories.sqlalchemy_user_repository import SqlAlchemyUserRepository
+from src.application.use_cases import ListarTrabajadores, RegistrarTrabajador
+from src.domain.entities.trabajador import Trabajador, Nombre, MesesUsoEPP
 
 router = APIRouter(prefix="/personal", tags=["Personal"])
 
-@router.post("/", response_model=PersonalResponse)
-def crear_personal(personal: PersonalCreate, db: Session = Depends(get_db)):
-    # 1. Instanciamos el repositorio
-    repo = SQLAlchemyPersonalRepository(db)
-    # 2. Instanciamos el caso de uso inyectándole el repositorio
-    caso_de_uso = RegistrarTrabajador(repo)
-    # 3. Ejecutamos la acción de negocio
-    return caso_de_uso.ejecutar(personal)
-
-@router.get("/", response_model=List[PersonalResponse])
+@router.get("/")
 def listar_personal(db: Session = Depends(get_db)):
-    repo = SQLAlchemyPersonalRepository(db)
-    caso_de_uso = ListarTrabajadores(repo)
-    return caso_de_uso.ejecutar()
+    repo = SqlAlchemyUserRepository(db)
+    use_case = ListarTrabajadores(repo)
+    return use_case.ejecutar()
 
-@router.get("/{id}", response_model=PersonalResponse)
-def obtener_personal_por_id(id: int, db: Session = Depends(get_db)):
-    repo = SQLAlchemyPersonalRepository(db)
-    caso_de_uso = ObtenerTrabajadorPorId(repo)
-    return caso_de_uso.ejecutar(id)
+@router.post("/")
+def crear_personal(data: dict, db: Session = Depends(get_db)):
+    repo = SqlAlchemyUserRepository(db)
+    use_case = RegistrarTrabajador(repo)
+    
+    trabajador = Trabajador(
+        id_trabajador=data.get("id_trabajador"),
+        nombre=Nombre(data.get("nombre")),
+        meses_uso_epp=MesesUsoEPP(data.get("meses_uso_epp")),
+        induccion_aprobada=data.get("induccion_aprobada", False)
+    )
+    
+    return use_case.ejecutar(trabajador)

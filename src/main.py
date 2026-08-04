@@ -2,8 +2,8 @@ from src.api.router import router as personal_router
 from src.domain.exceptions import DomainError, UserNotFoundError
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
-from src.infrastructure.database import Base, engine, get_db
-from src.infrastructure.repositories import SQLAlchemyPersonalRepository
+from src.infrastructure.persistence.database import Base, engine, get_db
+from src.infrastructure.persistence.repositories.sqlalchemy_user_repository import SqlAlchemyUserRepository
 
 from sqlalchemy.orm import Session
 

@@ -1,0 +1,1 @@
+from src.domain.entities.trabajador import Trabajador, Nombre, MesesUsoEPP

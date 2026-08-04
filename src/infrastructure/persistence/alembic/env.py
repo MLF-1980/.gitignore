@@ -8,6 +8,7 @@ from alembic.config import Config
 # Importa tu Base y modelos para que Alembic los reconozca
 from src.infrastructure.persistence.database import Base
 from src.infrastructure.persistence.models.user_model import PersonalModel
+import src.infrastructure.persistence.models.iper_model
 
 target_metadata = Base.metadata
 

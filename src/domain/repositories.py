@@ -1,14 +1,27 @@
 from abc import ABC, abstractmethod
-from src.domain.entities import Trabajador
+from typing import List, Optional
+# Ajusta la importación según dónde tengas tu clase Incident
+from src.domain.entities.incident import Incident
 
-class TrabajadorRepository(ABC):
+class IncidentRepositoryInterface(ABC):
     
     @abstractmethod
-    def guardar(self, trabajador: Trabajador):
-        """Obliga a cualquier repositorio a tener un método guardar"""
+    def save(self, incident: Incident) -> Incident:
         pass
 
     @abstractmethod
-    def obtener_por_id(self, id_trabajador: str) -> Trabajador:
-        """Obliga a cualquier repositorio a saber buscar por ID"""
+    def get_by_id(self, incident_id: int) -> Optional[Incident]:
+        pass
+
+    @abstractmethod
+    def get_all(self) -> List[Incident]:
+        pass
+
+class UserRepository(ABC):
+    @abstractmethod
+    def get_by_dni(self, dni: str):
+        pass
+
+    @abstractmethod
+    def save(self, user):
         pass

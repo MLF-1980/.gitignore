@@ -1,14 +1,14 @@
-from src.domain.entities.user import User
-from src.infrastructure.models.user_model import PersonalModel
+from src.domain.entities.trabajador import Trabajador
+from src.infrastructure.persistence.models.user_model import PersonalModel
 
 
 class UserMapper:
     @staticmethod
-    def to_domain(model: PersonalModel) -> User | None:
+    def to_domain(model: PersonalModel) -> Trabajador | None:
         if not model:
             return None
-        return User(
-            id=model.id,
+        return Trabajador(
+            id_trabajador=model.id,
             nombre=model.nombre,
             apellido=model.apellido,
             dni=model.dni,
@@ -17,9 +17,9 @@ class UserMapper:
         )
 
     @staticmethod
-    def to_persistence(entity: User) -> PersonalModel:
+    def to_persistence(entity: Trabajador) -> PersonalModel:
         return PersonalModel(
-            id=entity.id,
+            id=entity.id_trabajador,
             nombre=entity.nombre,
             apellido=entity.apellido,
             dni=entity.dni,
