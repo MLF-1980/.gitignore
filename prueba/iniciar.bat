@@ -1,6 +1,13 @@
 @echo off
 cd /d "%~dp0"
-echo Abriendo SafeCore...
-start http://localhost:8000
-"C:\Users\Lenovo\AppData\Local\Programs\Python\Python311\python.exe" app_demo.py
-pause
+
+echo Iniciando el servidor SafeCore...
+start "" python app_demo.py
+
+:: Espera 2 segundos para asegurar que el servidor esté activo
+timeout /t 2 >nul
+
+echo Abriendo la aplicacion en el navegador...
+start http://localhost:8000/
+
+exit

@@ -2,7 +2,11 @@ import http.server
 import json
 import os
 import sqlite3
+import mimetypes
+import pandas as pd
+from flask import Flask, render_template, request, redirect, url_for
 
+app = Flask(__name__)
 PORT = 8000
 DB_PATH = "safecore.db"
 
@@ -10,6 +14,48 @@ def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+def importar_excel_a_db(file_storage):
+    # Lee el archivo Excel subido usando pandas
+    df = pd.read_excel(file_storage)
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Recorre cada fila del Excel y guárdala en tu tabla de SQLite
+    for _, row in df.iterrows():
+        cursor.execute("""
+            INSERT INTO siniestros (fecha, proyecto, afectado, tipo, descripcion, dias_perdidos, gravedad)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (
+            str(row.get("Fecha", "")),
+            str(row.get("Proyecto", "")),
+            str(row.get("Afectado", "")),
+            str(row.get("Tipo", "")),
+            str(row.get("Descripción", "")),
+            int(row.get("Días Perdidos", 0)),
+            str(row.get("Gravedad", ""))
+        ))
+    
+    conn.commit()
+    conn.close()
+
+@app.route('/api/import-excel', methods=['POST'])
+def import_excel_route():
+    if 'file' not in request.files:
+        return "No se encontró el archivo", 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return "Archivo no seleccionado", 400
+
+    if file:
+        try:
+            importar_excel_a_db(file)
+            return redirect(url_for('index'))
+        except Exception as e:
+            return f"Error al procesar el archivo Excel: {e}", 500
+
 
 def init_db():
     conn = get_db_connection()
@@ -39,7 +85,7 @@ def init_db():
         )
     """)
 
-    # Tabla de Incidentes / Accidentes (Con formato de fecha YYYY-MM para control mensual)
+    # Tabla de Incidentes / Accidentes
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS incidents (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -86,24 +132,47 @@ HTML_TEMPLATE = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SafeCore - Reporte Gerencial Mensual</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Incluimos Chart.js para gráficos profesionales -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { background-color: #f1f5f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .navbar { background-color: #0f172a; }
         .card-metric { border-left: 4px solid #3b82f6; box-shadow: 0 4px 6px rgba(0,0,0,0.05); background: white; border-radius: 8px; }
         .table-container { background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-radius: 8px; padding: 20px; margin-bottom: 25px; }
-        .chart-container { background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-radius: 8px; padding: 20px; margin-bottom: 25px; position: relative; height: 320px; }
+        .chart-container {
+            background: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            position: relative;
+            height: 300px;
+            padding: 15px;
+            width: 100%;
+        }
+        .chart-container canvas {
+            max-height: 220px !important;
+            width: 100% !important;
+        }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-dark px-4 py-3 d-flex justify-content-between">
-        <span class="navbar-brand mb-0 h1 fw-bold">🛡️ SafeCore <small class="text-muted fs-6">| Reporte Gerencial y Estadísticas Mensuales</small></span>
-        <div>
-            <button class="btn btn-outline-light btn-sm me-2" onclick="alert('Exportando reporte mensual PDF para SRT y Directorio...')">📊 Exportar Informe Mensual</button>
-            <span class="badge bg-success">Sistema Conectado</span>
-        </div>
-    </nav>
+   <nav class="navbar navbar-dark bg-dark px-4 py-3 d-flex justify-content-between">
+    <span class="navbar-brand mb-0 h1 fw-bold d-flex align-items-center">
+        <img src="/static/img/logo.png" alt="Logo SafeCore" style="height: 35px; width: auto;" class="me-2" onerror="this.style.display='none'">
+        SafeCore <small class="text-muted fs-6 ms-2">| Reporte Gerencial</small>
+    </span>
+    
+    <div class="d-flex align-items-center">
+        <!-- Botón Cargar Excel -->
+        <button class="btn btn-outline-success btn-sm me-2" data-bs-toggle="modal" data-bs-target="#excelModal">
+            📊 Cargar Excel
+        </button>
+        <!-- Botón Exportar Informe -->
+        <button class="btn btn-outline-light btn-sm me-2">Exportar Informe Mensual</button>
+        <!-- Indicador de Sistema Conectado -->
+        <span class="badge bg-success">Sistema Conectado</span>
+    </div>
+</nav>
+<div class="container my-4">
+    <!-- Filtro de Periodo Mensual -->
+    
 
     <div class="container my-4">
         <!-- Filtro de Periodo Mensual -->
@@ -138,30 +207,61 @@ HTML_TEMPLATE = """
                 <div class="card card-metric p-3" style="border-left-color: #3b82f6;" title="Frecuencia: Cuántos accidentes ocurren por cada millón de horas trabajadas.">
                     <h6 class="text-muted">Índice de Frecuencia (IF) ℹ️</h6>
                     <h3 class="fw-bold text-primary" id="stat-if">0.00</h3>
-                    <small class="text-muted">Meta: < 15.00</small>
+                    <small class="text-muted">Meta: &lt; 15.00</small>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="card card-metric p-3" style="border-left-color: #8b5cf6;" title="Gravedad: Cuántos días se pierden por cada millón de horas trabajadas.">
                     <h6 class="text-muted">Índice de Gravedad (IG) ℹ️</h6>
                     <h3 class="fw-bold text-purple" id="stat-ig">0.00</h3>
-                    <small class="text-muted">Meta: < 50.00</small>
+                    <small class="text-muted">Meta: &lt; 50.00</small>
                 </div>
             </div>
         </div>
 
+        <button class="btn btn-outline-success btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#excelModal">
+    📊 Cargar Excel del Cliente
+</button>
+
+<!-- Modal -->
+<div class="modal fade" id="excelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">📊 Importar Planilla Excel</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="/api/import-excel" method="POST" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <p class="text-muted small">Sube el archivo Excel (.xlsx) con los siniestros históricos de la empresa.</p>
+                    <input type="file" name="file" class="form-control" accept=".xlsx, .xls" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Importar Datos</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+        
         <!-- Sección de Gráficos Visuales para la Gerencia -->
-        <div class="row">
+        <div class="row mb-4">
             <div class="col-md-6">
-                <div class="chart-container">
-                    <h5 class="fw-bold text-secondary mb-3">📊 Siniestralidad: Propios vs Terceros</h5>
-                    <canvas id="chartType"></canvas>
+                <div style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                    <h5 class="fw-bold text-secondary mb-2" style="font-size: 0.95rem;">📊 Siniestralidad: Propios vs Terceros</h5>
+                    <div style="height: 180px; position: relative;">
+                        <canvas id="chartType" style="height: 180px; width: 100%;"></canvas>
+                    </div>
                 </div>
             </div>
             <div class="col-md-6">
-                <div class="chart-container">
-                    <h5 class="fw-bold text-secondary mb-3">📉 Evolución de Días Perdidos</h5>
-                    <canvas id="chartDays"></canvas>
+                <div style="background: white; padding: 15px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                    <h5 class="fw-bold text-secondary mb-2" style="font-size: 0.95rem;">📉 Evolución de Días Perdidos</h5>
+                    <div style="height: 180px; position: relative;">
+                        <canvas id="chartDays" style="height: 180px; width: 100%;"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -283,11 +383,9 @@ HTML_TEMPLATE = """
         async function cargarTodo() {
             const selectedMonth = document.getElementById('filter-month').value;
 
-            // Cargar Incidentes
             const resInc = await fetch('/api/incidents');
             const dataInc = await resInc.json();
             
-            // Filtrar por mes seleccionado si aplica
             const filteredInc = dataInc.filter(row => {
                 if (selectedMonth === 'ALL') return true;
                 return row.incident_date.startsWith(selectedMonth);
@@ -319,12 +417,10 @@ HTML_TEMPLATE = """
                 `;
             });
 
-            // Actualizar Tarjetas Gerenciales
             document.getElementById('stat-accidents').innerText = totalAcc + ' Siniestros';
             document.getElementById('stat-accidents-desc').innerText = `Propios: ${propios} | Terceros: ${terceros}`;
             document.getElementById('stat-lost-days').innerText = totalLostDays + ' Días';
 
-            // Cálculo Automático de Índices (Base 25,000 Horas-Hombre mensuales)
             let hhTrabajadas = 25000; 
             let indiceFrecuencia = (totalAcc * 1000000) / hhTrabajadas;
             let indiceGravedad = (totalLostDays * 1000000) / hhTrabajadas;
@@ -332,10 +428,8 @@ HTML_TEMPLATE = """
             document.getElementById('stat-if').innerText = indiceFrecuencia.toFixed(2);
             document.getElementById('stat-ig').innerText = indiceGravedad.toFixed(2);
 
-            // Renderizar Gráficos con Chart.js
             renderCharts(propios, terceros, totalLostDays);
 
-            // Cargar Personal
             const resPers = await fetch('/api/personnel');
             const dataPers = await resPers.json();
             const tbodyPers = document.getElementById('tbody-personnel');
@@ -347,7 +441,6 @@ HTML_TEMPLATE = """
         }
 
         function renderCharts(propios, terceros, lostDays) {
-            // Gráfico 1: Propios vs Terceros (Pastel/Dona)
             const ctxType = document.getElementById('chartType').getContext('2d');
             if(chartTypeInstance) chartTypeInstance.destroy();
             chartTypeInstance = new Chart(ctxType, {
@@ -362,7 +455,6 @@ HTML_TEMPLATE = """
                 options: { responsive: true, maintainAspectRatio: false }
             });
 
-            // Gráfico 2: Días Perdidos (Barras)
             const ctxDays = document.getElementById('chartDays').getContext('2d');
             if(chartDaysInstance) chartDaysInstance.destroy();
             chartDaysInstance = new Chart(ctxDays, {
@@ -375,7 +467,15 @@ HTML_TEMPLATE = """
                         backgroundColor: ['#ef4444']
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
             });
         }
 
@@ -415,6 +515,16 @@ HTML_TEMPLATE = """
 
 class SafeCoreHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path.startswith("/static/"):
+            file_path = os.path.join(os.path.dirname(__file__), "..", "src", "infrastructure", "web", self.path.lstrip("/"))
+            if os.path.exists(file_path) and os.path.isfile(file_path):
+                self.send_response(200)
+                mimetype, _ = mimetypes.guess_type(file_path)
+                self.send_header("Content-type", mimetype or "application/octet-stream")
+                self.end_headers()
+                with open(file_path, "rb") as f:
+                    self.wfile.write(f.read())
+                return
         try:
             if self.path == '/' or self.path == '/index.html':
                 self.send_response(200)
@@ -468,11 +578,4 @@ if __name__ == '__main__':
     server_address = ('', PORT)
     httpd = http.server.HTTPServer(server_address, SafeCoreHandler)
     print(f"Servidor gerencial con gráficos mensuales corriendo en http://localhost:{PORT}")
-    httpd.serve_forever()
-
-if __name__ == "__main__":
-    from http.server import HTTPServer, SimpleHTTPRequestHandler
-    server_address = ('127.0.0.1', PORT)
-    print(f"Servidor corriendo en http://localhost:{PORT}")
-    httpd = HTTPServer(server_address, SimpleHTTPRequestHandler)
     httpd.serve_forever()

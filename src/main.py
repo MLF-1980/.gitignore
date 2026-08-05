@@ -1,35 +1,31 @@
-from src.api.router import router as personal_router
-from src.domain.exceptions import DomainError, UserNotFoundError
-from fastapi import Depends, FastAPI, Request
-from fastapi.responses import JSONResponse
-from src.infrastructure.persistence.database import Base, engine, get_db
-from src.infrastructure.persistence.repositories.sqlalchemy_user_repository import SqlAlchemyUserRepository
+import os
+from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
-from sqlalchemy.orm import Session
+app = FastAPI()
 
-# Crear las tablas automáticamente en SQLite al iniciar
-Base.metadata.create_all(bind=engine)
+# Directorio raíz del proyecto hsa
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-app = FastAPI(title="SafeCore API", version="1.0.0")
+# Si tenés tu carpeta de imágenes/logo dentro de hsa, descomenta y ajusta esta línea:
+# app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
-app.include_router(personal_router)
-
-@app.exception_handler(UserNotFoundError)
-async def user_not_found_handler(request: Request, exc: UserNotFoundError):
-  return JSONResponse(
-      status_code=404,
-     content={"codigo": "SAFECORE_NOT_FOUND", "sistema": "SafeCore Subcontratistas", "detalle": str(exc)},
-  )
-
-
-@app.exception_handler(DomainError)
-async def domain_error_handler(request: Request, exc: DomainError):
-  return JSONResponse(
-      status_code=400,
-     content={"codigo": "SAFECORE_REGULATORY_VIOLATION", "sistema": "SafeCore Subcontratistas", "detalle": str(exc)},
-  )
-
-
-@app.get("/")
-def health_check():
-  return {"status": "SafeCore running successfully"}
+@app.get("/", response_class=HTMLResponse)
+def home():
+    # Buscamos tu index.html dentro de la carpeta hsa
+    html_path = os.path.join(BASE_DIR, "index.html")
+    
+    if os.path.exists(html_path):
+        with open(html_path, "r", encoding="utf-8") as f:
+            return f.read()
+            
+    return """
+    <html>
+        <head><title>HSA - Mi Web</title></head>
+        <body style="background: #111; color: #fff; text-align: center; padding-top: 50px;">
+            <h1>Proyecto HSA</h1>
+            <p>Coloca tu archivo index.html en la raíz de la carpeta <b>hsa</b> para que se vea tu diseño y tu logo.</p>
+        </body>
+    </html>
+    """
