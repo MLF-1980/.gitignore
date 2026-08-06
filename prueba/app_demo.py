@@ -219,10 +219,7 @@ HTML_TEMPLATE = """
             </div>
         </div>
 
-        <button class="btn btn-outline-success btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#excelModal">
-    📊 Cargar Excel del Cliente
-</button>
-
+       
 <!-- Modal -->
 <div class="modal fade" id="excelModal" tabindex="-1">
     <div class="modal-dialog">
@@ -265,7 +262,23 @@ HTML_TEMPLATE = """
                 </div>
             </div>
         </div>
-
+      <!-- Sección Matriz IPER -->
+      <div class="row mb-4">
+          <div class="col-12">
+              <div class="card shadow-sm border-0">
+                  <div class="card-body">
+                      <h5 class="card-title fw-bold text-dark mb-2">
+                          📋 Matriz de Identificación de Peligros y Evaluación de Riesgos (IPER)
+                      </h5>
+                      <p class="text-muted mb-3">Módulo de control, identificación de peligros y evaluación de riesgos activos.</p>
+                      <div class="alert alert-light border border-secondary border-opacity-25 mb-0 d-flex align-items-center" role="alert">
+                          <span class="me-2">✅</span>
+                          <div>Matriz IPER activa y vinculada al periodo seleccionado.</div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </div>
         <!-- Módulo del Licenciado: Registro y Control de Accidentes -->
         <div class="table-container border-top border-danger border-4">
             <div class="d-flex justify-content-between align-items-center mb-3">
