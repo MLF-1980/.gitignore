@@ -1,5 +1,5 @@
 import pytest
-from domain.entities.incident import Trabajador, Nombre, MesesUsoEPP
+from src.domain.entities.incident import Trabajador, Nombre, MesesUsoEPP
 from src.application.use_cases import RegistrarTrabajador
 
 # Creamos un repositorio falso que no usa JSON, solo memoria
